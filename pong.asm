@@ -18,6 +18,15 @@ DATA SEGMENT PARA 'DATA'
 	BALL_VELOCITY_X DW 05h ;x velocity of the ball
 	BALL_VELOCITY_Y DW 02h ;y velocity of the ball
 
+	PADDLE_LEFT_X DW 0Ah   ;left paddle x
+	PADDLE_LEFT_Y DW 0Ah   ;left paddle y
+
+	PADDLE_RIGHT_X DW 130h   ;left paddle x
+	PADDLE_RIGHT_Y DW 0Ah   ;left paddle y
+
+	PADDLE_WIDTH DW 05h
+	PADDLE_HEIGHT DW 22h
+
 DATA ENDS
 
 CODE SEGMENT PARA 'CODE'
@@ -48,6 +57,8 @@ CODE SEGMENT PARA 'CODE'
 
 			CALL MOVE_BALL    ;move ball to new position
 			CALL DRAW_BALL    ;draw ball in new position
+
+			CALL DRAW_PADDLES ;draw left and right paddle 
 
 			JMP CHECK_TIME    ;after everything checks time again
 
@@ -132,6 +143,57 @@ CODE SEGMENT PARA 'CODE'
 
 		RET
 	DRAW_BALL ENDP
+
+	DRAW_PADDLES PROC NEAR
+		
+		MOV CX,PADDLE_LEFT_X ;set the initial column (x) w
+		MOV DX,PADDLE_LEFT_Y ;set the initial line (y)
+
+		DRAW_PADDLE_LEFT_HORIZONTAL:
+			MOV AH,0Ch    ;set the configuration to writing a pixel
+			MOV AL,0Fh    ;choose white as colour
+			MOV BH,00h    ;set the page number
+			INT 10h       ;execute the configuration
+
+			INC CX        ;CX = CX + 1
+			MOV AX,CX     ;CX - PADDLE_LEFT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
+			SUB AX,PADDLE_LEFT_X
+			CMP AX,PADDLE_WIDTH
+			JNG DRAW_PADDLE_LEFT_HORIZONTAL
+
+			MOV CX,PADDLE_LEFT_X ;the CX register goes back to the inital column
+			INC DX        ;we advance one line
+
+			MOV AX,DX     ;DX - PADDLE_LEFT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
+			SUB AX,PADDLE_LEFT_Y
+			CMP AX,PADDLE_HEIGHT
+			JNG DRAW_PADDLE_LEFT_HORIZONTAL
+
+		MOV CX,PADDLE_RIGHT_X ;set the initial column (x) w
+		MOV DX,PADDLE_RIGHT_Y ;set the initial line (y)
+
+		DRAW_PADDLE_RIGHT_HORIZONTAL:
+			MOV AH,0Ch    ;set the configuration to writing a pixel
+			MOV AL,0Fh    ;choose white as colour
+			MOV BH,00h    ;set the page number
+			INT 10h       ;execute the configuration
+
+			INC CX        ;CX = CX + 1
+			MOV AX,CX     ;CX - PADDLE_RIGHT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
+			SUB AX,PADDLE_RIGHT_X
+			CMP AX,PADDLE_WIDTH
+			JNG DRAW_PADDLE_RIGHT_HORIZONTAL
+
+			MOV CX,PADDLE_RIGHT_X ;the CX register goes back to the inital column
+			INC DX        ;we advance one line
+
+			MOV AX,DX     ;DX - PADDLE_RIGHT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
+			SUB AX,PADDLE_RIGHT_Y
+			CMP AX,PADDLE_HEIGHT
+			JNG DRAW_PADDLE_RIGHT_HORIZONTAL
+
+		RET
+	DRAW_PADDLES ENDP
 
 	CLEAR_SCREEN PROC NEAR
 
