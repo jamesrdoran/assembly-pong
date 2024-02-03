@@ -21,11 +21,12 @@ DATA SEGMENT PARA 'DATA'
 	PADDLE_LEFT_X DW 0Ah   ;left paddle x
 	PADDLE_LEFT_Y DW 0Ah   ;left paddle y
 
-	PADDLE_RIGHT_X DW 130h   ;left paddle x
-	PADDLE_RIGHT_Y DW 0Ah   ;left paddle y
+	PADDLE_RIGHT_X DW 130h   ;right paddle x
+	PADDLE_RIGHT_Y DW 0Ah   ;right paddle y
 
-	PADDLE_WIDTH DW 05h
-	PADDLE_HEIGHT DW 22h
+	PADDLE_WIDTH DW 05h    ;paddle width (5px)
+	PADDLE_HEIGHT DW 22h   ;paddle height (34px)
+	PADDLE_VELOCITY DW 05h
 
 DATA ENDS
 
@@ -58,6 +59,7 @@ CODE SEGMENT PARA 'CODE'
 			CALL MOVE_BALL    ;move ball to new position
 			CALL DRAW_BALL    ;draw ball in new position
 
+			CALL MOVE_PADDLES
 			CALL DRAW_PADDLES ;draw left and right paddle 
 
 			JMP CHECK_TIME    ;after everything checks time again
@@ -104,6 +106,110 @@ CODE SEGMENT PARA 'CODE'
 			RET
 
 	MOVE_BALL ENDP
+
+	MOVE_PADDLES PROC NEAR
+		
+		                                ;left paddle movement
+	                                  ;check if a key is being pressed (if not check the other paddle)
+		MOV AH,01h                      ;add keyboard status to register
+		INT 16h                         ;execute the configuration
+		JZ CHECK_RIGHT_PADDLE_MOVEMENT  ;ZF = 1, JZ => jump if zero
+
+		                                ;check which key is being pressed (AL = ASCII character)
+	  MOV AH,00h
+		INT 16h
+
+		                                ;if it is 'w' or 'W' move up
+		CMP AL,77h                      ;lowercase 'w'
+		JE MOVE_LEFT_PADDLE_UP
+		CMP AL,57h                      ;uppercase 'W'
+		JE MOVE_LEFT_PADDLE_UP
+		                                ;if it is 's' or 'S' move down
+		CMP AL,73h                      ;lowercase 's'
+		JE MOVE_LEFT_PADDLE_DOWN
+		CMP AL,53h                      ;uppercase 'S'
+		JE MOVE_LEFT_PADDLE_DOWN
+		JMP CHECK_RIGHT_PADDLE_MOVEMENT
+
+		MOVE_LEFT_PADDLE_UP:
+			MOV AX,PADDLE_VELOCITY
+			SUB PADDLE_LEFT_Y,AX
+			
+			MOV AX,WINDOW_BOUNDS
+			CMP PADDLE_LEFT_Y,AX
+			JL FIX_PADDLE_LEFT_TOP_POSITION
+			JMP CHECK_RIGHT_PADDLE_MOVEMENT
+
+			FIX_PADDLE_LEFT_TOP_POSITION:
+				MOV PADDLE_LEFT_Y,AX
+				JMP CHECK_RIGHT_PADDLE_MOVEMENT
+
+
+		MOVE_LEFT_PADDLE_DOWN:
+			MOV AX,PADDLE_VELOCITY
+			ADD PADDLE_LEFT_Y,AX
+			MOV AX,WINDOW_HEIGHT
+			SUB AX,WINDOW_BOUNDS
+			SUB AX,PADDLE_HEIGHT
+			CMP PADDLE_LEFT_Y,AX
+			JG FIX_PADDLE_LEFT_BOTTOM_POSITION
+			JMP CHECK_RIGHT_PADDLE_MOVEMENT
+
+			FIX_PADDLE_LEFT_BOTTOM_POSITION:
+				MOV PADDLE_LEFT_Y,AX
+				JMP CHECK_RIGHT_PADDLE_MOVEMENT
+			
+		                               ;right paddle movement
+		CHECK_RIGHT_PADDLE_MOVEMENT:
+																			
+																			;if it is 'o' or 'O' move up
+			CMP AL,6Fh                      ;lowercase 'o'
+			JE MOVE_RIGHT_PADDLE_UP
+			CMP AL,4Fh                      ;uppercase 'O'
+			JE MOVE_RIGHT_PADDLE_UP
+																			
+		                                  ;if it is 'l' or 'L' move down
+			CMP AL,6Ch                      ;lowercase 'l'
+			JE MOVE_RIGHT_PADDLE_DOWN
+			CMP AL,4Ch                      ;uppercase 'L'
+			JE MOVE_RIGHT_PADDLE_DOWN
+			JMP EXIT_PADDLE_MOVEMENT
+			
+			MOVE_RIGHT_PADDLE_UP:
+				MOV AX,PADDLE_VELOCITY
+				SUB PADDLE_RIGHT_Y,AX
+				
+				MOV AX,WINDOW_BOUNDS
+				CMP PADDLE_RIGHT_Y,AX
+				JL FIX_PADDLE_RIGHT_TOP_POSITION
+				JMP EXIT_PADDLE_MOVEMENT
+
+				FIX_PADDLE_RIGHT_TOP_POSITION:
+					MOV PADDLE_RIGHT_Y,AX
+					JMP EXIT_PADDLE_MOVEMENT
+
+			MOVE_RIGHT_PADDLE_DOWN:
+				MOV AX,PADDLE_VELOCITY
+				ADD PADDLE_RIGHT_Y,AX
+				MOV AX,WINDOW_HEIGHT
+				SUB AX,WINDOW_BOUNDS
+				SUB AX,PADDLE_HEIGHT
+				CMP PADDLE_RIGHT_Y,AX
+				JG FIX_PADDLE_RIGHT_BOTTOM_POSITION
+				JMP EXIT_PADDLE_MOVEMENT
+
+				FIX_PADDLE_RIGHT_BOTTOM_POSITION:
+					MOV PADDLE_RIGHT_Y,AX
+					JMP EXIT_PADDLE_MOVEMENT
+
+		;check which key is being pressed
+		
+
+		EXIT_PADDLE_MOVEMENT:
+
+			RET
+
+	MOVE_PADDLES ENDP
 	
 	RESET_BALL_POSITION PROC NEAR
 	
@@ -146,48 +252,49 @@ CODE SEGMENT PARA 'CODE'
 
 	DRAW_PADDLES PROC NEAR
 		
-		MOV CX,PADDLE_LEFT_X ;set the initial column (x) w
-		MOV DX,PADDLE_LEFT_Y ;set the initial line (y)
+		MOV CX,PADDLE_LEFT_X               ;set the initial column (x) w
+		MOV DX,PADDLE_LEFT_Y               ;set the initial line (y)
 
 		DRAW_PADDLE_LEFT_HORIZONTAL:
-			MOV AH,0Ch    ;set the configuration to writing a pixel
-			MOV AL,0Fh    ;choose white as colour
-			MOV BH,00h    ;set the page number
-			INT 10h       ;execute the configuration
+			MOV AH,0Ch                       ;set the configuration to writing a pixel
+			MOV AL,0Fh                       ;choose white as colour
+			MOV BH,00h                       ;set the page number
+			INT 10h                          ;execute the configuration
 
-			INC CX        ;CX = CX + 1
-			MOV AX,CX     ;CX - PADDLE_LEFT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
+			INC CX                           ;CX = CX + 1
+			MOV AX,CX                        ;CX - PADDLE_LEFT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
 			SUB AX,PADDLE_LEFT_X
 			CMP AX,PADDLE_WIDTH
 			JNG DRAW_PADDLE_LEFT_HORIZONTAL
 
-			MOV CX,PADDLE_LEFT_X ;the CX register goes back to the inital column
-			INC DX        ;we advance one line
+			MOV CX,PADDLE_LEFT_X             ;the CX register goes back to the inital column
+			INC DX                           ;we advance one line
 
-			MOV AX,DX     ;DX - PADDLE_LEFT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
+			MOV AX,DX                        ;DX - PADDLE_LEFT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
 			SUB AX,PADDLE_LEFT_Y
 			CMP AX,PADDLE_HEIGHT
 			JNG DRAW_PADDLE_LEFT_HORIZONTAL
 
-		MOV CX,PADDLE_RIGHT_X ;set the initial column (x) w
-		MOV DX,PADDLE_RIGHT_Y ;set the initial line (y)
+		MOV CX,PADDLE_RIGHT_X              ;set the initial column (x) w
+		MOV DX,PADDLE_RIGHT_Y              ;set the initial line (y)
 
 		DRAW_PADDLE_RIGHT_HORIZONTAL:
-			MOV AH,0Ch    ;set the configuration to writing a pixel
-			MOV AL,0Fh    ;choose white as colour
-			MOV BH,00h    ;set the page number
-			INT 10h       ;execute the configuration
+			
+			MOV AH,0Ch                       ;set the configuration to writing a pixel
+			MOV AL,0Fh                       ;choose white as colour
+			MOV BH,00h                       ;set the page number
+			INT 10h                          ;execute the configuration
 
-			INC CX        ;CX = CX + 1
-			MOV AX,CX     ;CX - PADDLE_RIGHT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
+			INC CX                           ;CX = CX + 1
+			MOV AX,CX                        ;CX - PADDLE_RIGHT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
 			SUB AX,PADDLE_RIGHT_X
 			CMP AX,PADDLE_WIDTH
 			JNG DRAW_PADDLE_RIGHT_HORIZONTAL
 
-			MOV CX,PADDLE_RIGHT_X ;the CX register goes back to the inital column
-			INC DX        ;we advance one line
+			MOV CX,PADDLE_RIGHT_X            ;the CX register goes back to the inital column
+			INC DX                           ;we advance one line
 
-			MOV AX,DX     ;DX - PADDLE_RIGHT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
+			MOV AX,DX                        ;DX - PADDLE_RIGHT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
 			SUB AX,PADDLE_RIGHT_Y
 			CMP AX,PADDLE_HEIGHT
 			JNG DRAW_PADDLE_RIGHT_HORIZONTAL
