@@ -20,10 +20,11 @@ DATA SEGMENT PARA 'DATA'
 
 	PADDLE_LEFT_X DW 0Ah                  ;current x position of the left paddle
 	PADDLE_LEFT_Y DW 0Ah                  ;current y position of the left paddle
+	PADDLE_LEFT_POINTS DB 0               ;current point of the left player (player one)
 
 	PADDLE_RIGHT_X DW 130h                ;current x position of the right paddle
 	PADDLE_RIGHT_Y DW 0Ah                 ;current y position of the right paddle
-
+	PADDLE_RIGHT_POINTS DB 0              ;current point of the right player (player two)
 
 	PADDLE_WIDTH DW 05h                   ;paddle width (5px)
 	PADDLE_HEIGHT DW 22h                  ;paddle height (34px)
@@ -80,26 +81,42 @@ CODE SEGMENT PARA 'CODE'
 ;   if is colliding, reset its position
 		MOV AX,WINDOW_BOUNDS          
 		CMP BALL_X,AX                       ;BALL_X is compared with the left boundries of the screen (0 + WINDOW_BOUNDS)
-		JL RESET_POSITION                   ;if it is less, reset position
-		JMP MOVE_BALL_VERTICALLY
+		JL GIVE_POINT_TO_PLAYER_TWO         ;if it is less, give one point to player two and reset ball position
     
-		RESET_POSITION:          
-			CALL RESET_BALL_POSITION          ;reset ball position to the centre of the screen
+;   check if the ball has passed the right boundries (BALL_X > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
+;   if is colliding, reset its position
+		MOV AX,WINDOW_WIDTH
+		SUB AX,BALL_SIZE
+		SUB AX,WINDOW_BOUNDS
+		CMP BALL_X,AX                        ;BALL_X is compared with the right boundries of the screen (BALL_X > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
+		JG GIVE_POINT_TO_PLAYER_ONE          ;if it is less, give one point to player one and reset ball position
+		JMP MOVE_BALL_VERTICALLY
+
+		GIVE_POINT_TO_PLAYER_ONE:            ;give one point to player one and reset ball position
+			INC PADDLE_LEFT_POINTS             ;increment player one points
+			CALL RESET_BALL_POSITION           ;reset ball position to the centre of the screen
+
+			CMP PADDLE_LEFT_POINTS,05h         ;check of this player has reached 5 points
+			JGE GAME_OVER                      ;if this player is 5 or more, the game is over
+			RET
+		
+		GIVE_POINT_TO_PLAYER_TWO:            ;give one point to player one and reset ball position
+			INC PADDLE_RIGHT_POINTS            ;increment player two points
+			CALL RESET_BALL_POSITION           ;reset ball position to the centre of the screen
+
+			CMP PADDLE_RIGHT_POINTS,05h         ;check of this player has reached 5 points
+			JGE GAME_OVER                      ;if this player is 5 or more, the game is over
+			RET
+
+		GAME_OVER:                           ;someone has reached 5 points
+			MOV PADDLE_LEFT_POINTS,00h         ;reset player one points
+			MOV PADDLE_RIGHT_POINTS,00h        ;reset player two points
 			RET
 
 ;   move the ball veritcally
 		MOVE_BALL_VERTICALLY:
 			MOV AX,BALL_VELOCITY_Y
 			ADD BALL_Y,AX
-
-;   check if the ball has passed the right boundries (BALL_X > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
-;   if is colliding, reset its position
-		MOV AX,WINDOW_WIDTH
-		SUB AX,BALL_SIZE
-		SUB AX,WINDOW_BOUNDS
-		CMP BALL_X,AX                       ;BALL_X is compared with the right boundries of the screen (BALL_X > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
-		JG RESET_POSITION                   ;if it is greater, reset position
-
 
 ;   check if the ball has passed the top boundries (BALL_Y < 0 + WINDOW_BOUNDS)
 ;   if is colliding, reverse the y velocity
