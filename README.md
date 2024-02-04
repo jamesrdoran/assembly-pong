@@ -3,8 +3,9 @@
 
 Pong game written in assembly
 
-### movement
+## how to play
 
+### movement
 left paddle: <br>
   'w' or 'W' - up <br>
   's' or 'S' - down <br>
