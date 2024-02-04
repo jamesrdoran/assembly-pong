@@ -4,29 +4,30 @@ STACK ENDS
 
 DATA SEGMENT PARA 'DATA'
 
-	WINDOW_WIDTH DW 140h   ;width of window (320px)
-	WINDOW_HEIGHT DW 0C8h  ;height of window (200px)
-	WINDOW_BOUNDS DW 6     ;check collisions early
+	WINDOW_WIDTH DW 140h            ;width of window (320px)
+	WINDOW_HEIGHT DW 0C8h           ;height of window (200px)
+	WINDOW_BOUNDS DW 6              ;check collisions early
 	
-	TIME_AUX DB 0          ;variable used when checking if the time has changed
+	TIME_AUX DB 0                   ;variable used when checking if the time has changed
 
-	BALL_ORIGINAL_X DW 0A0h
-	BALL_ORIGINAL_Y DW 64h
-	BALL_X DW 0A0h         ;x position of the ball
-	BALL_Y DW 64h          ;y position of the ball
-	BALL_SIZE DW 04h       ;size of the ball (px width and height)
-	BALL_VELOCITY_X DW 05h ;x velocity of the ball
-	BALL_VELOCITY_Y DW 02h ;y velocity of the ball
+	BALL_ORIGINAL_X DW 0A0h         ;x position of ball at start of game
+	BALL_ORIGINAL_Y DW 64h          ;y position of ball at start of game
+	BALL_X DW 0A0h                  ;current x position of the ball
+	BALL_Y DW 64h                   ;current y position of the ball
+	BALL_SIZE DW 04h                ;size of the ball (px width and height)
+	BALL_VELOCITY_X DW 05h          ;x velocity of the ball
+	BALL_VELOCITY_Y DW 02h          ;y velocity of the ball
 
-	PADDLE_LEFT_X DW 0Ah   ;left paddle x
-	PADDLE_LEFT_Y DW 0Ah   ;left paddle y
+	PADDLE_LEFT_X DW 0Ah            ;current x position of the left paddle
+	PADDLE_LEFT_Y DW 0Ah            ;current y position of the left paddle
 
-	PADDLE_RIGHT_X DW 130h   ;right paddle x
-	PADDLE_RIGHT_Y DW 0Ah   ;right paddle y
+	PADDLE_RIGHT_X DW 130h          ;current x position of the right paddle
+	PADDLE_RIGHT_Y DW 0Ah           ;current y position of the right paddle
 
-	PADDLE_WIDTH DW 05h    ;paddle width (5px)
-	PADDLE_HEIGHT DW 22h   ;paddle height (34px)
-	PADDLE_VELOCITY DW 05h
+
+	PADDLE_WIDTH DW 05h             ;paddle width (5px)
+	PADDLE_HEIGHT DW 22h            ;paddle height (34px)
+	PADDLE_VELOCITY DW 05h          ;paddle velocity
 
 DATA ENDS
 
@@ -42,75 +43,87 @@ CODE SEGMENT PARA 'CODE'
 	POP AX                          ;release the top item from the stack to the AX register
 	POP AX                          ;release the top item from the stack to the AX register
 
-		CALL CLEAR_SCREEN
+		CALL CLEAR_SCREEN             ;set initial video mode configuration
 
-		CHECK_TIME:
-			MOV AH,2Ch        ;get the system time
-			INT 21h           ;CH = hour CL = minute DH = second DL = 1/100 seconds
+		CHECK_TIME:                   ;time checking loop
 
-			CMP DL,TIME_AUX	  ;is the current time equal to the previous time (TIME_AUX)?
-			JE CHECK_TIME     ;if it is the same, check again
-			                  ;if it's different, then draw, move, etc.
+			MOV AH,2Ch                  ;get the system time
+			INT 21h                     ;CH = hour CL = minute DH = second DL = 1/100 seconds
 
-			MOV TIME_AUX,DL   ;update time
-			
-			CALL CLEAR_SCREEN ;clear the screen
+			CMP DL,TIME_AUX	            ;is the current time equal to the previous time (TIME_AUX)?
+			JE CHECK_TIME               ;if it is the same, check again
 
-			CALL MOVE_BALL    ;move ball to new position
-			CALL DRAW_BALL    ;draw ball in new position
+;     if it reaches this point, time has passed
 
-			CALL MOVE_PADDLES
-			CALL DRAW_PADDLES ;draw left and right paddle 
+			MOV TIME_AUX,DL             ;update time
 
-			JMP CHECK_TIME    ;after everything checks time again
+			CALL CLEAR_SCREEN           ;clear the screen by restarting the video mode
+
+			CALL MOVE_BALL              ;move ball the ball
+			CALL DRAW_BALL              ;draw ball the ball
+
+			CALL MOVE_PADDLES           ;move the two paddles (check for a key press)
+			CALL DRAW_PADDLES           ;draw the paddles with updated positions
+
+			JMP CHECK_TIME              ;check time again
 
 		RET
 	MAIN ENDP
 
-	MOVE_BALL PROC NEAR
+	MOVE_BALL PROC NEAR             ;processes the movement of the ball
 
-		MOV AX,BALL_VELOCITY_X ;move the ball on the x
+;   move the ball horizontally
+		MOV AX,BALL_VELOCITY_X        ;move the ball on the x
 		ADD BALL_X,AX           
 
-		MOV AX,WINDOW_BOUNDS 
-		CMP BALL_X,AX
-		JL RESET_POSITION      ;BALL_X < 0 + WINDOW_BOUNDS (y => collided)
+;   check if the ball has passed the left boundries (BALL_X < 0 + WINDOWS_BOUNDS)
+;   if is colliding, reset its position
+		MOV AX,WINDOW_BOUNDS          
+		CMP BALL_X,AX                 ;BALL_X is compared with the left boundries of the screen (0 + WINDOW_BOUNDS)
+		JL RESET_POSITION             ;if it is less, reset position
     
+;   check if the ball has passed the right boundries (BALL_X > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
+;   if is colliding, reset its position
 		MOV AX,WINDOW_WIDTH
 		SUB AX,BALL_SIZE
 		SUB AX,WINDOW_BOUNDS
-		CMP BALL_X,AX          ;BALL_X > WINDOW_WIDTH - BALL_SIZE (y => collided)
-		JG RESET_POSITION
+		CMP BALL_X,AX                 ;BALL_X is compared with the right boundries of the screen (BALL_X > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
+		JG RESET_POSITION             ;if it is greater, reset position
 
-		MOV AX,BALL_VELOCITY_Y ;move the ball on the y
+;   move the ball veritcally
+		MOV AX,BALL_VELOCITY_Y
 		ADD BALL_Y,AX
 
+;   check if the ball has passed the top boundries (BALL_Y < 0 + WINDOW_BOUNDS)
+;   if is colliding, reverse the y velocity
 		MOV AX,WINDOW_BOUNDS
-		CMP BALL_Y,AX          ;BALL_Y < 0 + WINDOW_BOUNDS (y => collided)
-		JL NEG_VELOCITY_Y			  
+		CMP BALL_Y,AX                 ;BALL_Y is compared with the top boundries of the screen (BALL_Y < 0 + WINDOW_BOUNDS)
+		JL NEG_VELOCITY_Y			        ;if it is less, reverse the y velocity
 
-    MOV AX,WINDOW_HEIGHT ;BALL_Y > WINDOW_WIDTH - BALL_SIZE (y => collided)
-		SUB AX,BALL_SIZE     ;minus BALL_SIZE
-		SUB AX,WINDOW_BOUNDS ;minus WINDOW_BOUNDS
-		CMP BALL_Y,AX        ;add BALL_Y to memory
-		JG NEG_VELOCITY_Y    ;reverse balls velocity
+;   check if the ball has passed the bottom boundries (BALL_Y > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
+;   if is colliding, reverse the y velocity
+    MOV AX,WINDOW_HEIGHT 
+		SUB AX,BALL_SIZE	
+		SUB AX,WINDOW_BOUNDS	
+		CMP BALL_Y,AX                 ;BALL_Y is compared with the bottom boundries of the screen (BALL_Y > WINDOW_WIDTH - BALL_SIZE - WINDOW_BOUNDS)
+		JG NEG_VELOCITY_Y			        ;if it is greater, reverse the y velocity
 
 		RET
 
-		RESET_POSITION:
-			CALL RESET_BALL_POSITION
+		RESET_POSITION:               
+			CALL RESET_BALL_POSITION    ;reset ball position to the centre of the screen
 			RET
 
 		NEG_VELOCITY_Y:
-			NEG BALL_VELOCITY_Y  ;BALL_VELOCITY_Y = -BALL_VELOCITY_Y
+			NEG BALL_VELOCITY_Y         ;reverse the velocity in the y (BALL_VELOCITY_Y = -BALL_VELOCITY_Y)
 			RET
 
 	MOVE_BALL ENDP
 
 	MOVE_PADDLES PROC NEAR
 		
-		                                ;left paddle movement
-	                                  ;check if a key is being pressed (if not check the other paddle)
+;   left paddle movement
+;   check if a key is being pressed (if not check the other paddle)
 		MOV AH,01h                      ;add keyboard status to register
 		INT 16h                         ;execute the configuration
 		JZ CHECK_RIGHT_PADDLE_MOVEMENT  ;ZF = 1, JZ => jump if zero
@@ -159,7 +172,7 @@ CODE SEGMENT PARA 'CODE'
 				MOV PADDLE_LEFT_Y,AX
 				JMP CHECK_RIGHT_PADDLE_MOVEMENT
 			
-		                               ;right paddle movement
+;   right paddle movement
 		CHECK_RIGHT_PADDLE_MOVEMENT:
 																			
 																			;if it is 'o' or 'O' move up
@@ -202,16 +215,13 @@ CODE SEGMENT PARA 'CODE'
 					MOV PADDLE_RIGHT_Y,AX
 					JMP EXIT_PADDLE_MOVEMENT
 
-		;check which key is being pressed
-		
-
 		EXIT_PADDLE_MOVEMENT:
 
 			RET
 
 	MOVE_PADDLES ENDP
 	
-	RESET_BALL_POSITION PROC NEAR
+	RESET_BALL_POSITION PROC NEAR       ;reset ball position to the original position               
 	
 		MOV AX,BALL_ORIGINAL_X
 		MOV BALL_X,AX
@@ -224,25 +234,25 @@ CODE SEGMENT PARA 'CODE'
 
 	DRAW_BALL PROC NEAR
 		
-		MOV CX,BALL_X ;set the initial column (x) w
-		MOV DX,BALL_Y ;set the initial line (y)
+		MOV CX,BALL_X                     ;set the initial column (x)
+		MOV DX,BALL_Y                     ;set the initial line (y)
 		
 		DRAW_BALL_HORIZONTAL:
-			MOV AH,0Ch    ;set the configuration to writing a pixel
-			MOV AL,0Fh    ;choose white as colour
-			MOV BH,00h    ;set the page number
-			INT 10h       ;execute the configuration
+			MOV AH,0Ch                      ;set the configuration to writing a pixel
+			MOV AL,0Fh                      ;choose white as colour
+			MOV BH,00h                      ;set the page number
+			INT 10h                         ;execute the configuration
 
-			INC CX        ;CX = CX + 1
-			MOV AX,CX     ;CX - BALL_X > BALL_SIZE (y => we go to the next line, N => we continue to the next column)
+			INC CX                          ;CX = CX + 1
+			MOV AX,CX                       ;CX - BALL_X > BALL_SIZE (y => we go to the next line, N => we continue to the next column)
 			SUB AX,BALL_X
 			CMP AX,BALL_SIZE
 			JNG DRAW_BALL_HORIZONTAL
 
-			MOV CX,BALL_X ;the CX register goes back to the inital column
-			INC DX        ;we advance one line
+			MOV CX,BALL_X                   ;the CX register goes back to the inital column
+			INC DX                          ;we advance one line
 
-			MOV AX,DX     ;DX - BALL_Y > BALL_SIZE (y => we exit the procedure, N => we continue to the next line)
+			MOV AX,DX                       ;DX - BALL_Y > BALL_SIZE (y => we exit the procedure, N => we continue to the next line)
 			SUB AX,BALL_Y
 			CMP AX,BALL_SIZE
 			JNG DRAW_BALL_HORIZONTAL
@@ -252,41 +262,41 @@ CODE SEGMENT PARA 'CODE'
 
 	DRAW_PADDLES PROC NEAR
 		
-		MOV CX,PADDLE_LEFT_X               ;set the initial column (x) w
-		MOV DX,PADDLE_LEFT_Y               ;set the initial line (y)
+		MOV CX,PADDLE_LEFT_X              ;set the initial column (x) w
+		MOV DX,PADDLE_LEFT_Y              ;set the initial line (y)
 
 		DRAW_PADDLE_LEFT_HORIZONTAL:
-			MOV AH,0Ch                       ;set the configuration to writing a pixel
-			MOV AL,0Fh                       ;choose white as colour
-			MOV BH,00h                       ;set the page number
-			INT 10h                          ;execute the configuration
+			MOV AH,0Ch                      ;set the configuration to writing a pixel
+			MOV AL,0Fh                      ;choose white as colour
+			MOV BH,00h                      ;set the page number
+			INT 10h                         ;execute the configuration
 
-			INC CX                           ;CX = CX + 1
-			MOV AX,CX                        ;CX - PADDLE_LEFT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
+			INC CX                          ;CX = CX + 1
+			MOV AX,CX                       ;CX - PADDLE_LEFT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
 			SUB AX,PADDLE_LEFT_X
 			CMP AX,PADDLE_WIDTH
 			JNG DRAW_PADDLE_LEFT_HORIZONTAL
 
-			MOV CX,PADDLE_LEFT_X             ;the CX register goes back to the inital column
-			INC DX                           ;we advance one line
+			MOV CX,PADDLE_LEFT_X            ;the CX register goes back to the inital column
+			INC DX                          ;we advance one line
 
-			MOV AX,DX                        ;DX - PADDLE_LEFT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
+			MOV AX,DX                       ;DX - PADDLE_LEFT_Y > PADDLE_WIDTH (y => we exit the procedure, N => we continue to the next line)
 			SUB AX,PADDLE_LEFT_Y
 			CMP AX,PADDLE_HEIGHT
 			JNG DRAW_PADDLE_LEFT_HORIZONTAL
-
-		MOV CX,PADDLE_RIGHT_X              ;set the initial column (x) w
-		MOV DX,PADDLE_RIGHT_Y              ;set the initial line (y)
+ 
+		MOV CX,PADDLE_RIGHT_X             ;set the initial column (x)
+		MOV DX,PADDLE_RIGHT_Y             ;set the initial line (y)
 
 		DRAW_PADDLE_RIGHT_HORIZONTAL:
 			
-			MOV AH,0Ch                       ;set the configuration to writing a pixel
-			MOV AL,0Fh                       ;choose white as colour
-			MOV BH,00h                       ;set the page number
-			INT 10h                          ;execute the configuration
+			MOV AH,0Ch                      ;set the configuration to writing a pixel
+			MOV AL,0Fh                      ;choose white as colour
+			MOV BH,00h                      ;set the page number
+			INT 10h                         ;execute the configuration
 
-			INC CX                           ;CX = CX + 1
-			MOV AX,CX                        ;CX - PADDLE_RIGHT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
+			INC CX                          ;CX = CX + 1
+			MOV AX,CX                       ;CX - PADDLE_RIGHT_X > PADDLE_WIDTH (y => we go to the next line, N => we continue to the next column)
 			SUB AX,PADDLE_RIGHT_X
 			CMP AX,PADDLE_WIDTH
 			JNG DRAW_PADDLE_RIGHT_HORIZONTAL
@@ -302,16 +312,16 @@ CODE SEGMENT PARA 'CODE'
 		RET
 	DRAW_PADDLES ENDP
 
-	CLEAR_SCREEN PROC NEAR
+	CLEAR_SCREEN PROC NEAR               ;clear screen by resetting the video mode
 
-		MOV AH,00h ;set the configuration to video mode
-		MOV AL,13h ;choose the video mode (320x200 graphics 256 colours)
-		INT 10h    ;execute the configuration
+		MOV AH,00h                         ;set the configuration to video mode
+		MOV AL,13h                         ;choose the video mode (320x200 graphics 256 colours)
+		INT 10h                            ;execute the configuration
 
-		MOV AH,0Bh ;set the configuration 
-		MOV BH,00h ;to the background colour
-		MOV BL,00h ;choose black as background colour	
-		INT 10h    ;execute the configuration
+		MOV AH,0Bh                         ;set the configuration 
+		MOV BH,00h                         ;to the background colour
+		MOV BL,00h                         ;choose black as background colour	
+		INT 10h                            ;execute the configuration
 
 		RET
 	CLEAR_SCREEN ENDP

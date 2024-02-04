@@ -5,12 +5,13 @@ Pong game written in assembly
 
 ### movement
 
-left paddle:
-  'w' or 'W' - up
-  's' or 'S' - down
-right paddle:
-  'o' or 'O' - up
-  'l' or 'L' - down
+left paddle: <br>
+  'w' or 'W' - up <br>
+  's' or 'S' - down <br>
+
+right paddle: <br>
+  'o' or 'O' - up <br>
+  'l' or 'L' - down <br>
 
 All credit goes to programmingdimension for creating the YouTube tutorial
 https://github.com/programmingdimension/8086-Assembly-Pong
