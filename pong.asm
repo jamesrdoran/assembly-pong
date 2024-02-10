@@ -22,12 +22,12 @@ DATA SEGMENT PARA 'DATA'
 	BALL_VELOCITY_Y DW 02h                           ;y velocity of the ball
 
 	PADDLE_LEFT_X DW 0Ah                             ;current x position of the left paddle
-	PADDLE_LEFT_Y DW 0Ah                             ;current y position of the left paddle
-	PADDLE_LEFT_POINTS DB 0                          ;current point of the left player (player one)
+	PADDLE_LEFT_Y DW 55h                             ;current y position of the left paddle
+	PLAYER_ONE_POINTS DB 0                           ;current point of the left player (player one)
 
 	PADDLE_RIGHT_X DW 130h                           ;current x position of the right paddle
-	PADDLE_RIGHT_Y DW 0Ah                            ;current y position of the right paddle
-	PADDLE_RIGHT_POINTS DB 0                         ;current point of the right player (player two)
+	PADDLE_RIGHT_Y DW 55h                            ;current y position of the right paddle
+	PLAYER_TWO_POINTS DB 0                           ;current point of the right player (player two)
 
 	PADDLE_WIDTH DW 05h                              ;paddle width (5px)
 	PADDLE_HEIGHT DW 22h                             ;paddle height (34px)
@@ -98,24 +98,30 @@ CODE SEGMENT PARA 'CODE'
 		JMP MOVE_BALL_VERTICALLY
 
 		GIVE_POINT_TO_PLAYER_ONE:                      ;give one point to player one and reset ball position
-			INC PADDLE_LEFT_POINTS                       ;increment player one points
+			INC PLAYER_ONE_POINTS                        ;increment player one points
 			CALL RESET_BALL_POSITION                     ;reset ball position to the centre of the screen
 
-			CMP PADDLE_LEFT_POINTS,05h                   ;check of this player has reached 5 points
+      CALL UPDATE_TEXT_PLAYER_ONE_POINTS           ;update the text of the points of player two
+
+			CMP PLAYER_ONE_POINTS,05h                    ;check of this player has reached 5 points
 			JGE GAME_OVER                                ;if this player is 5 or more, the game is over
 			RET
 		
 		GIVE_POINT_TO_PLAYER_TWO:                      ;give one point to player one and reset ball position
-			INC PADDLE_RIGHT_POINTS                      ;increment player two points
+			INC PLAYER_TWO_POINTS                        ;increment player two points
 			CALL RESET_BALL_POSITION                     ;reset ball position to the centre of the screen
 
-			CMP PADDLE_RIGHT_POINTS,05h                  ;check of this player has reached 5 points
+      CALL UPDATE_TEXT_PLAYER_TWO_POINTS           ;update the text of the points of player one
+
+			CMP PLAYER_TWO_POINTS,05h                    ;check of this player has reached 5 points
 			JGE GAME_OVER                                ;if this player is 5 or more, the game is over
 			RET
 
 		GAME_OVER:                                     ;someone has reached 5 points
-			MOV PADDLE_LEFT_POINTS,00h                   ;reset player one points
-			MOV PADDLE_RIGHT_POINTS,00h                  ;reset player two points
+			MOV PLAYER_ONE_POINTS,00h                    ;reset player one points
+			MOV PLAYER_TWO_POINTS,00h                    ;reset player two points
+			CALL UPDATE_TEXT_PLAYER_ONE_POINTS           ;update the text of the points of player one
+			CALL UPDATE_TEXT_PLAYER_TWO_POINTS           ;update the text of the points of player two
 			RET
 
 ;   move the ball veritcally
@@ -313,6 +319,9 @@ CODE SEGMENT PARA 'CODE'
 		MOV AX,BALL_ORIGINAL_Y
 		MOV BALL_Y,AX
 
+		NEG BALL_VELOCITY_X                            ;reverse ball x velocity
+		NEG BALL_VELOCITY_Y                            ;reverse ball y velocity
+
 		RET
 	RESET_BALL_POSITION ENDP
 
@@ -422,6 +431,26 @@ CODE SEGMENT PARA 'CODE'
 
 	  RET
 	DRAW_UI ENDP
+
+	UPDATE_TEXT_PLAYER_ONE_POINTS PROC NEAR
+
+	  XOR AX,AX                                      ;clear AX
+	  MOV AL,PLAYER_ONE_POINTS                       ;move the points of player one to AL
+	  ADD AL,30h                                     ;convert the points of player one to ASCII
+	  MOV [TEXT_PLAYER_ONE_POINTS],AL                ;update the text of the points of player one
+
+    RET
+  UPDATE_TEXT_PLAYER_ONE_POINTS ENDP
+
+  UPDATE_TEXT_PLAYER_TWO_POINTS PROC NEAR
+
+    XOR AX,AX                                      ;clear AX
+    MOV AL,PLAYER_TWO_POINTS                       ;move the points of player two to AL
+    ADD AL,30h                                     ;convert the points of player two to ASCII
+    MOV [TEXT_PLAYER_TWO_POINTS],AL                ;update the text of the points of player two
+
+    RET
+  UPDATE_TEXT_PLAYER_TWO_POINTS ENDP
 
 	CLEAR_SCREEN PROC NEAR                           ;clear screen by resetting the video mode
 
