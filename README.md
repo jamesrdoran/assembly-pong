@@ -16,5 +16,5 @@ right paddle: <br>
 
 ## credits
 
-All credit goes to programmingdimension for creating the YouTube tutorial
+All credit goes to programmingdimension for creating the YouTube tutorial <br>
 https://github.com/programmingdimension/8086-Assembly-Pong

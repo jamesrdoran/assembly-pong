@@ -10,6 +10,9 @@ DATA SEGMENT PARA 'DATA'
 	
 	TIME_AUX DB 0                         ;variable used when checking if the time has changed
 
+	TEXT_PLAYER_ONE_POINTS DB '0','$'     ;text to display the points of player one
+	TEXT_PLAYER_TWO_POINTS DB '0','$'     ;text to display the points of player two
+
 	BALL_ORIGINAL_X DW 0A0h               ;x position of ball at start of game
 	BALL_ORIGINAL_Y DW 64h                ;y position of ball at start of game
 	BALL_X DW 0A0h                        ;current x position of the ball
@@ -65,6 +68,8 @@ CODE SEGMENT PARA 'CODE'
 
 			CALL MOVE_PADDLES                 ;move the two paddles (check for a key press)
 			CALL DRAW_PADDLES                 ;draw the paddles with updated positions
+
+			CALL DRAW_UI                      ;draw the user interface
 
 			JMP CHECK_TIME                    ;check time again
 
@@ -237,7 +242,6 @@ CODE SEGMENT PARA 'CODE'
 				MOV PADDLE_LEFT_Y,AX
 				JMP CHECK_RIGHT_PADDLE_MOVEMENT
 
-
 		MOVE_LEFT_PADDLE_DOWN:
 			MOV AX,PADDLE_VELOCITY
 			ADD PADDLE_LEFT_Y,AX
@@ -391,6 +395,33 @@ CODE SEGMENT PARA 'CODE'
 
 		RET
 	DRAW_PADDLES ENDP
+
+	DRAW_UI PROC NEAR
+
+;   draw the points of the left player (player one)
+    MOV AH,02h                          ;set the configuration to set the cursor position
+    MOV BH,00h                          ;set the page number
+    MOV DH,04h                          ;set the line (y)
+    MOV DL,06h                          ;set the column (x)
+    INT 10h                             ;execute the configuration
+
+    MOV AH,09h                          ;set the configuration to write a string
+    LEA DX,TEXT_PLAYER_ONE_POINTS       ;give DX a pointer to the string
+    INT 21h                             ;execute the configuration
+
+;   draw the points of the right player (player two)
+    MOV AH,02h                          ;set the configuration to set the cursor position
+    MOV BH,00h                          ;set the page number
+    MOV DH,04h                          ;set the line (y)
+    MOV DL,1Fh                          ;set the column (x)
+    INT 10h                             ;execute the configuration
+
+    MOV AH,09h                          ;set the configuration to write a string
+    LEA DX,TEXT_PLAYER_TWO_POINTS       ;give DX a pointer to the string
+    INT 21h                             ;execute the configuration
+
+	  RET
+	DRAW_UI ENDP
 
 	CLEAR_SCREEN PROC NEAR                ;clear screen by resetting the video mode
 
