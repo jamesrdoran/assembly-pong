@@ -10,6 +10,7 @@ DATA SEGMENT PARA 'DATA'
 	
 	TIME_AUX DB 0                                                        ;variable used when checking if the time has changed
 	GAME_ACTIVE DB 1                                                     ;is the game active? (1 = yes, 0 = no)
+	EXITING_GAME DB 0                                                    ;is the game exiting? (1 = yes, 0 = no)
 	WINNER_INDEX DB 0                                                    ;index of the winner of the game (1 = player one, 2 = player two)
 	CURRENT_SCENE DB 0                                                   ;current scene of the game (0 = main menu, 1 = game)
 
@@ -62,6 +63,9 @@ CODE SEGMENT PARA 'CODE'
 
 		CHECK_TIME:                                                        ;time checking loop
 
+      CMP EXITING_GAME,01h                                             ;is the game exiting?
+      JE START_EXIT_PROCESS                                            ;if it is, exit the game
+
       CMP CURRENT_SCENE,00h                                            ;is the current scene the main menu?
       JE SHOW_MAIN_MENU                                                ;if it is, draw the main menu
 
@@ -97,6 +101,9 @@ CODE SEGMENT PARA 'CODE'
     SHOW_MAIN_MENU:                                                    ;show main menu
       CALL DRAW_MAIN_MENU                                              ;draw the main menu
       JMP CHECK_TIME                                                   ;check time again
+
+    START_EXIT_PROCESS:                                                ;exit the game
+      CALL CONCLUDE_EXIT_GAME                                          ;conclude the exit game process
 
     RET
 	MAIN ENDP
@@ -277,7 +284,7 @@ CODE SEGMENT PARA 'CODE'
 		MOVE_LEFT_PADDLE_UP:
 			MOV AX,PADDLE_VELOCITY
 			SUB PADDLE_LEFT_Y,AX
-			
+
 			MOV AX,WINDOW_BOUNDS
 			CMP PADDLE_LEFT_Y,AX
 			JL FIX_PADDLE_LEFT_TOP_POSITION
@@ -302,15 +309,13 @@ CODE SEGMENT PARA 'CODE'
 				JMP CHECK_RIGHT_PADDLE_MOVEMENT
 			
 ;   right paddle movement
-		CHECK_RIGHT_PADDLE_MOVEMENT:
-																			
-																			                                 ;if it is 'o' or 'O' move up
+		CHECK_RIGHT_PADDLE_MOVEMENT:                                       ;if it is 'o' or 'O' move up, if it is 'l' or 'L' move down
+
 			CMP AL,6Fh                                                       ;lowercase 'o'
 			JE MOVE_RIGHT_PADDLE_UP
 			CMP AL,4Fh                                                       ;uppercase 'O'
 			JE MOVE_RIGHT_PADDLE_UP
-																			
-		                                                                   ;if it is 'l' or 'L' move down
+
 			CMP AL,6Ch                                                       ;lowercase 'l'
 			JE MOVE_RIGHT_PADDLE_DOWN
 			CMP AL,4Ch                                                       ;uppercase 'L'
@@ -616,11 +621,39 @@ CODE SEGMENT PARA 'CODE'
     LEA DX,TEXT_MAIN_MENU_EXIT                                         ;give DX a pointer to the string
     INT 21h                                                            ;print the string
 
+    MAIN_MENU_INPUT:
 ;   waits for a key press
-    MOV AH,00h                                                         ;set the configuration to get a key press
-    INT 16h                                                            ;execute the configuration
+      MOV AH,00h                                                       ;set the configuration to get a key press
+      INT 16h                                                          ;execute the configuration
 
-    RET
+;   check which key was pressed
+      CMP AL,'S'                                                       ;if the key pressed is 'S' (singleplayer)
+      JE START_SINGLEPLAYER_GAME                                       ;start singleplayer game
+      CMP AL,'s'                                                       ;if the key pressed is 's' (singleplayer)
+      JE START_SINGLEPLAYER_GAME                                       ;start singleplayer game
+      CMP AL,'M'                                                       ;if the key pressed is 'M' (multiplayer)
+      JE START_MULTIPLAYER_GAME                                        ;start multiplayer game
+      CMP AL,'m'                                                       ;if the key pressed is 'm' (multiplayer)
+      JE START_MULTIPLAYER_GAME                                        ;start multiplayer game
+      CMP AL,'E'                                                       ;if the key pressed is 'E' (exit)
+      JE EXIT_GAME                                                     ;exit the game
+      CMP AL,'e'                                                       ;if the key pressed is 'e' (exit)
+      JE EXIT_GAME                                                     ;exit the game
+      JMP MAIN_MENU_INPUT                                              ;if the key pressed is not any of the above, wait for another key press
+
+    START_SINGLEPLAYER_GAME:                                           ;start singleplayer game
+      JMP MAIN_MENU_INPUT                                              ;TODO: implement singleplayer game
+      RET
+
+    START_MULTIPLAYER_GAME:                                            ;start multiplayer game
+      MOV CURRENT_SCENE,01h                                            ;set the current scene as the game
+      MOV GAME_ACTIVE,01h                                              ;set the game as active
+      RET
+
+    EXIT_GAME:                                                         ;exit the game
+      MOV EXITING_GAME,01h                                             ;set the configuration to exit the program
+      RET                                                              ;execute the configuration
+
   DRAW_MAIN_MENU ENDP
 
   UPDATE_WINNER_TEXT PROC NEAR
@@ -645,6 +678,18 @@ CODE SEGMENT PARA 'CODE'
 
 		RET
 	CLEAR_SCREEN ENDP
+
+	CONCLUDE_EXIT_GAME PROC NEAR                                         ;go back to the text mode
+
+    MOV AH,00h                                                         ;set the configuration to video mode
+    MOV AL,03h                                                         ;choose the video mode (text mode 80x25)
+    INT 10h                                                            ;execute the configuration
+
+    MOV AH,4Ch                                                         ;set the configuration to exit the program
+    INT 21h                                                            ;execute the configuration
+
+    RET
+  CONCLUDE_EXIT_GAME ENDP
 
 CODE ENDS
 END

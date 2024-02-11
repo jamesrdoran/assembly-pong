@@ -1,7 +1,19 @@
 # assembly-pong
 
+## how to run
+  What is needed to run the game:
+    - DOSBox
+    - 8086 assembler (masm)
+
+  to run the game:
+    - clone the repository
+    - open DOSBox
+    - mount the directory where the game is located
+    - run the game by typing `masm /a pong.asm`, enter through the prompts or ';' to skip prompts. Then type `link pong`, enter through the prompts or ';' to skip prompts, and finally `pong` to run the game
+
 ## game screenshots
 
+#### main menu
 ![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/55c4d7c5-eac6-4df5-b36e-358e4c1677ee)
 
 #### game play
@@ -10,10 +22,14 @@
 #### game over
 ![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/be9094b4-d18e-4b1f-8767-67cbdffca3bc)
 
-
 Pong game written in assembly
 
 ## how to play
+
+### start a game
+'s' or 'S' - start a single player game <br>
+'m' or 'M' - start a multiplayer game <br>
+'e' or 'E' - exit the game
 
 ### movement
 left paddle: <br>
@@ -24,8 +40,9 @@ right paddle: <br>
   'o' or 'O' - up <br>
   'l' or 'L' - down <br>
 
-### restart the game
+### restart or exit the game
 'r' or 'R' - restart the game
+'e' or 'E' - exit the game
 
 ## credits
 
