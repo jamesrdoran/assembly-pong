@@ -2,6 +2,8 @@
 
 ## game screenshots
 
+![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/55c4d7c5-eac6-4df5-b36e-358e4c1677ee)
+
 #### game play
 ![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/c702a402-fe15-4bc9-a6de-393b428aea01)
 
