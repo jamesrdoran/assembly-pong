@@ -40,6 +40,7 @@ DATA SEGMENT PARA 'DATA'
 	PADDLE_RIGHT_X DW 130h                                               ;current x position of the right paddle
 	PADDLE_RIGHT_Y DW 55h                                                ;current y position of the right paddle
 	PLAYER_TWO_POINTS DB 0                                               ;current point of the right player (player two)
+	AI_CONTROLLED DB 0                                                   ;is the right paddle controlled by the AI? (1 = yes, 0 = no)
 
 	PADDLE_WIDTH DW 05h                                                  ;paddle width (5px)
 	PADDLE_HEIGHT DW 22h                                                 ;paddle height (34px)
@@ -311,16 +312,40 @@ CODE SEGMENT PARA 'CODE'
 ;   right paddle movement
 		CHECK_RIGHT_PADDLE_MOVEMENT:                                       ;if it is 'o' or 'O' move up, if it is 'l' or 'L' move down
 
-			CMP AL,6Fh                                                       ;lowercase 'o'
-			JE MOVE_RIGHT_PADDLE_UP
-			CMP AL,4Fh                                                       ;uppercase 'O'
-			JE MOVE_RIGHT_PADDLE_UP
+      CMP AI_CONTROLLED,01h                                            ;is the right paddle controlled by the AI?
+      JE CONTROL_BY_AI                                                 ;if it is, control the right paddle by the AI
 
-			CMP AL,6Ch                                                       ;lowercase 'l'
-			JE MOVE_RIGHT_PADDLE_DOWN
-			CMP AL,4Ch                                                       ;uppercase 'L'
-			JE MOVE_RIGHT_PADDLE_DOWN
-			JMP EXIT_PADDLE_MOVEMENT
+;     check if a key is being pressed by a player
+      CHECK_FOR_KEYS:
+        CMP AL,6Fh                                                     ;lowercase 'o'
+        JE MOVE_RIGHT_PADDLE_UP
+        CMP AL,4Fh                                                     ;uppercase 'O'
+        JE MOVE_RIGHT_PADDLE_UP
+
+        CMP AL,6Ch                                                     ;lowercase 'l'
+        JE MOVE_RIGHT_PADDLE_DOWN
+        CMP AL,4Ch                                                     ;uppercase 'L'
+        JE MOVE_RIGHT_PADDLE_DOWN
+        JMP EXIT_PADDLE_MOVEMENT
+
+;     control the right paddle by the AI
+      CONTROL_BY_AI:
+        ;check if the ball is above the paddle (BALL_Y + BALL_SIZE < PADDLE_RIGHT_Y)
+        ;if it is move up
+        MOV AX,BALL_Y
+        ADD AX,BALL_SIZE
+        CMP AX,PADDLE_RIGHT_Y
+        JL MOVE_RIGHT_PADDLE_UP
+
+        ;check if the ball is below the paddle (BALL_Y > PADDLE_RIGHT_Y + PADDLE_HEIGHT)
+        ;if it is move down
+        MOV AX,PADDLE_RIGHT_Y
+        ADD AX,PADDLE_HEIGHT
+        CMP BALL_Y,AX
+        JL MOVE_RIGHT_PADDLE_DOWN
+
+        ;if it is not, do nothing
+        JMP EXIT_PADDLE_MOVEMENT
 			
 			MOVE_RIGHT_PADDLE_UP:
 				MOV AX,PADDLE_VELOCITY
@@ -642,12 +667,15 @@ CODE SEGMENT PARA 'CODE'
       JMP MAIN_MENU_INPUT                                              ;if the key pressed is not any of the above, wait for another key press
 
     START_SINGLEPLAYER_GAME:                                           ;start singleplayer game
-      JMP MAIN_MENU_INPUT                                              ;TODO: implement singleplayer game
+      MOV CURRENT_SCENE,01h                                            ;set the current scene as the game
+      MOV GAME_ACTIVE,01h                                              ;set the game as active
+      MOV AI_CONTROLLED,01h                                            ;set the right paddle as AI controlled
       RET
 
     START_MULTIPLAYER_GAME:                                            ;start multiplayer game
       MOV CURRENT_SCENE,01h                                            ;set the current scene as the game
       MOV GAME_ACTIVE,01h                                              ;set the game as active
+      MOV AI_CONTROLLED,00h                                            ;set the right paddle as player controlled
       RET
 
     EXIT_GAME:                                                         ;exit the game
