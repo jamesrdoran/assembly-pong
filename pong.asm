@@ -524,7 +524,7 @@ CODE SEGMENT PARA 'CODE'
 	CLEAR_SCREEN PROC NEAR                           ;clear screen by resetting the video mode
 
 		MOV AH,00h                                     ;set the configuration to video mode
-		MOV AL,13h                                     ;choose the video mode (320x200 graphics 256 colours)
+		MOV AL,0Dh                                     ;choose the video mode (320x200 graphics 256 colours)
 		INT 10h                                        ;execute the configuration
 
 		MOV AH,0Bh                                     ;set the configuration
