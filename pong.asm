@@ -9,13 +9,14 @@ DATA SEGMENT PARA 'DATA'
 	WINDOW_BOUNDS DW 6                               ;check collisions early
 	
 	TIME_AUX DB 0                                    ;variable used when checking if the time has changed
-	GAME_ACTIVATE DB 1                               ;is the game active? (1 = yes, 0 = no)
+	GAME_ACTIVE DB 1                               ;is the game active? (1 = yes, 0 = no)
 	WINNER_INDEX DB 0                                ;index of the winner of the game (1 = player one, 2 = player two)
 
 	TEXT_PLAYER_ONE_POINTS DB '0','$'                ;text to display the points of player one
 	TEXT_PLAYER_TWO_POINTS DB '0','$'                ;text to display the points of player two
 	TEXT_GAME_OVER_TITLE DB 'GAME OVER','$'          ;text to display the game over title
 	TEXT_GAME_OVER_WINNER DB 'PLAYER 0 WINS','$'   ;text to display the winner of the game
+	TEXT_GAME_OVER_PLAY_AGAIN DB 'Press R to play again','$' ;text to display the play again message
 
 	BALL_ORIGINAL_X DW 0A0h                          ;x position of ball at start of game
 	BALL_ORIGINAL_Y DW 64h                           ;y position of ball at start of game
@@ -55,7 +56,7 @@ CODE SEGMENT PARA 'CODE'
 
 		CHECK_TIME:                                    ;time checking loop
 
-      CMP GAME_ACTIVATE,00h                        ;is the game active?
+      CMP GAME_ACTIVE,00h                        ;is the game active?
       JE SHOW_GAME_OVER                            ;if not, show game over screen
 
 			MOV AH,2Ch                                   ;get the system time
@@ -146,7 +147,7 @@ CODE SEGMENT PARA 'CODE'
         MOV PLAYER_TWO_POINTS,00h                  ;reset player two points
         CALL UPDATE_TEXT_PLAYER_ONE_POINTS         ;update the text of the points of player one
         CALL UPDATE_TEXT_PLAYER_TWO_POINTS         ;update the text of the points of player two
-        MOV GAME_ACTIVATE,00h                      ;stops the game
+        MOV GAME_ACTIVE,00h                      ;stops the game
         RET
 
 ;   move the ball veritcally
@@ -505,11 +506,32 @@ CODE SEGMENT PARA 'CODE'
     LEA DX,TEXT_GAME_OVER_WINNER                   ;give DX a pointer to the string
     INT 21h                                        ;print the string
 
+;   shows the play again message
+    MOV AH,02h                                     ;set the configuration to set the cursor position
+    MOV BH,00h                                     ;set the page number
+    MOV DH,08h                                     ;set the line (y)
+    MOV DL,04h                                     ;set the column (x)
+    INT 10h                                        ;execute the configuration
+
+    MOV AH,09h                                     ;set the configuration to write a string
+    LEA DX,TEXT_GAME_OVER_PLAY_AGAIN               ;give DX a pointer to the string
+    INT 21h                                        ;print the string
+
 ;   waits for a key press
     MOV AH,00h                                     ;set the configuration to get a key press
     INT 16h                                        ;execute the configuration
 
+;   if the key is 'R' or 'r', restart the game
+    CMP AL,'R'                                     ;if the key pressed is 'R' (play again)
+    JE RESTART_GAME                                ;restart the game
+    CMP AL,'r'                                     ;if the key pressed is 'r' (play again)
+    JE RESTART_GAME                                ;restart the game
     RET
+
+    RESTART_GAME:                                   ;restart the game
+      MOV GAME_ACTIVE,01h                           ;set the game as active
+      RET
+
   DRAW_GAME_OVER_MENU ENDP
 
   UPDATE_WINNER_TEXT PROC NEAR

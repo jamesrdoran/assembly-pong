@@ -14,6 +14,9 @@ right paddle: <br>
   'o' or 'O' - up <br>
   'l' or 'L' - down <br>
 
+### restart the game
+'r' or 'R' - restart the game
+
 ## credits
 
 All credit goes to programmingdimension for creating the YouTube tutorial <br>
