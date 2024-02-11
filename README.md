@@ -24,7 +24,7 @@ I started this project as a way to learn assembly, in preparation for an upcomin
 ![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/55c4d7c5-eac6-4df5-b36e-358e4c1677ee)
 
 #### game play
-![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/c702a402-fe15-4bc9-a6de-393b428aea01)
+![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/5bb02ca3-540e-40e1-b3c9-cb0fb8c882f1)
 
 #### game over
 ![image](https://github.com/jamesrdoran/assembly-pong/assets/139739768/be9094b4-d18e-4b1f-8767-67cbdffca3bc)
